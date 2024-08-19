@@ -1,65 +1,58 @@
-import { hri } from 'human-readable-ids';
-import Debug from 'debug';
-
-import Client from './Client';
-import TunnelAgent from './TunnelAgent';
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ClientManager = void 0;
+const human_readable_ids_1 = require("human-readable-ids");
+const debug_1 = require("debug");
+const Client_1 = require("./Client");
+const TunnelAgent_1 = __importDefault(require("./TunnelAgent"));
 // Manage sets of clients
-//
 // A client is a "user session" established to service a remote localtunnel client
 class ClientManager {
-    constructor(opt) {
-        this.opt = opt || {};
-
+    clients;
+    stats;
+    debug;
+    opt;
+    constructor(opt = {}) {
+        this.opt = opt;
         // id -> client instance
         this.clients = new Map();
-
         // statistics
         this.stats = {
             tunnels: 0
         };
-
-        this.debug = Debug('lt:ClientManager');
-
-        // This is totally wrong :facepalm: this needs to be per-client...
-        this.graceTimeout = null;
+        this.debug = (0, debug_1.debug)('lt:ClientManager');
     }
-
     // create a new tunnel with `id`
     // if the id is already used, a random id is assigned
     // if the tunnel could not be created, throws an error
     async newClient(id) {
-        const clients = this.clients;
-        const stats = this.stats;
-
-        // can't ask for id already is use
-        if (clients[id]) {
-            id = hri.random();
+        // can't ask for id already in use
+        if (this.clients.has(id)) {
+            id = human_readable_ids_1.hri.random();
         }
-
-        const maxSockets = this.opt.max_tcp_sockets;
-        const agent = new TunnelAgent({
+        const maxSockets = this.opt.max_tcp_sockets ?? 10;
+        const agent = new TunnelAgent_1.default({
             clientId: id,
-            maxSockets: 10,
+            maxTcpSockets: maxSockets
         });
-
-        const client = new Client({
+        const client = new Client_1.Client({
             id,
             agent,
+            timeout: 1000
         });
-
         // add to clients map immediately
         // avoiding races with other clients requesting same id
-        clients[id] = client;
-
+        this.clients.set(id, client);
         client.once('close', () => {
             this.removeClient(id);
         });
-
         // try/catch used here to remove client id
         try {
             const info = await agent.listen();
-            ++stats.tunnels;
+            ++this.stats.tunnels;
             return {
                 id: id,
                 port: info.port,
@@ -72,25 +65,21 @@ class ClientManager {
             throw err;
         }
     }
-
     removeClient(id) {
         this.debug('removing client: %s', id);
-        const client = this.clients[id];
+        const client = this.clients.get(id);
         if (!client) {
             return;
         }
         --this.stats.tunnels;
-        delete this.clients[id];
+        this.clients.delete(id);
         client.close();
     }
-
     hasClient(id) {
-        return !!this.clients[id];
+        return this.clients.has(id);
     }
-
     getClient(id) {
-        return this.clients[id];
+        return this.clients.get(id);
     }
 }
-
-export default ClientManager;
+exports.ClientManager = ClientManager;

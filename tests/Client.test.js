@@ -1,10 +1,9 @@
-import assert from 'assert';
+import { assert, describe, it } from 'vitest';
 import http from 'http';
 import { Duplex } from 'stream';
-import WebSocket from 'ws';
 import net from 'net';
 
-import Client from './Client';
+import { Client } from '../src/lib/Client';
 
 class DummySocket extends Duplex {
     constructor(options) {

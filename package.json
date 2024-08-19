@@ -9,7 +9,6 @@
     "url": "git://github.com/localtunnel/server.git"
   },
   "dependencies": {
-    "book": "1.3.3",
     "debug": "3.1.0",
     "esm": "3.2.25",
     "human-readable-ids": "1.0.4",
@@ -18,17 +17,32 @@
     "localenv": "0.2.2",
     "optimist": "0.6.1",
     "pump": "3.0.0",
-    "tldjs": "2.3.1"
+    "tldjs": "2.3.1",
+    "winston": "3.14.2"
   },
   "devDependencies": {
+    "@types/debug": "4.1.12",
+    "@types/koa": "2.15.0",
+    "@types/koa-router": "7.4.8",
+    "@types/node": "22.4.1",
+    "@types/optimist": "0.0.33",
+    "@types/pump": "1.1.3",
+    "@types/supertest": "6.0.2",
+    "@types/tldjs": "2.3.4",
+    "@types/winston": "2.4.4",
     "mocha": "10.7.0",
     "node-dev": "8.0.0",
     "supertest": "7.0.0",
+    "ts-node": "10.9.2",
+    "typescript": "5.5.4",
+    "vitest": "2.0.5",
     "ws": "8.18.0"
   },
   "scripts": {
-    "test": "mocha --check-leaks --require esm './**/*.test.js'",
+    "test": "vitest",
     "start": "./bin/server",
-    "dev": "node-dev bin/server --port 3000"
+    "dev": "node-dev src/server -- --port 3000",
+    "start-server": "ts-node -r tsconfig-paths/register src/server --port 1234",
+    "build": "tsc"
   }
 }

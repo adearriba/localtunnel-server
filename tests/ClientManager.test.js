@@ -1,7 +1,7 @@
-import assert from 'assert';
+import { assert, describe, it } from 'vitest';
 import net from 'net';
 
-import ClientManager from './ClientManager';
+import { ClientManager } from '../src/lib/ClientManager';
 
 describe('ClientManager', () => {
     it('should construct with no tunnels', () => {
@@ -53,7 +53,7 @@ describe('ClientManager', () => {
         // wait past grace period (1s)
         await new Promise(resolve => setTimeout(resolve, 1500));
         assert(!manager.hasClient('foobar'));
-    }).timeout(5000);
+    }, { timeout: 5000 });
 
     it('should remove correct client once it goes offline', async () => {
         const manager = new ClientManager();
@@ -76,7 +76,7 @@ describe('ClientManager', () => {
 
         manager.removeClient('foo');
         socket.end();
-    }).timeout(5000);
+    }, { timeout: 5000 });
 
     it('should remove clients if they do not connect within 5 seconds', async () => {
         const manager = new ClientManager();
@@ -86,5 +86,5 @@ describe('ClientManager', () => {
         // wait past grace period (1s)
         await new Promise(resolve => setTimeout(resolve, 1500));
         assert(!manager.hasClient('foo'));
-    }).timeout(5000);
+    }, { timeout: 5000 });
 });

@@ -1,23 +1,28 @@
-import log from 'book';
 import Koa from 'koa';
 import tldjs from 'tldjs';
 import Debug from 'debug';
-import http from 'http';
+import http, { IncomingMessage, ServerResponse } from 'http';
 import { hri } from 'human-readable-ids';
 import Router from 'koa-router';
+import net from 'net';
 
-import ClientManager from './lib/ClientManager';
+import { ClientManager } from './ClientManager';
+
+interface Options {
+    domain?: string;
+    landing?: string;
+    secure?: boolean;
+    max_tcp_sockets?: number;
+}
 
 const debug = Debug('localtunnel:server');
 
-export default function(opt) {
-    opt = opt || {};
-
-    const validHosts = (opt.domain) ? [opt.domain] : undefined;
+export function createServer(opt: Options = {}): http.Server {
+    const validHosts = opt.domain ? [opt.domain] : undefined;
     const myTldjs = tldjs.fromUserSettings({ validHosts });
     const landingPage = opt.landing || 'https://localtunnel.github.io/www/';
 
-    function GetClientIdFromHostname(hostname) {
+    function GetClientIdFromHostname(hostname: string): string | null {
         return myTldjs.getSubdomain(hostname);
     }
 
@@ -28,7 +33,7 @@ export default function(opt) {
     const app = new Koa();
     const router = new Router();
 
-    router.get('/api/status', async (ctx, next) => {
+    router.get('/api/status', async (ctx) => {
         const stats = manager.stats;
         ctx.body = {
             tunnels: stats.tunnels,
@@ -36,7 +41,7 @@ export default function(opt) {
         };
     });
 
-    router.get('/api/tunnels/:id/status', async (ctx, next) => {
+    router.get('/api/tunnels/:id/status', async (ctx) => {
         const clientId = ctx.params.id;
         const client = manager.getClient(clientId);
         if (!client) {
@@ -69,7 +74,7 @@ export default function(opt) {
             debug('making new client with id %s', reqId);
             const info = await manager.newClient(reqId);
 
-            const url = schema + '://' + info.id + '.' + ctx.request.host;
+            const url = `${schema}://${info.id}.${ctx.request.host}`;
             info.url = url;
             ctx.body = info;
             return;
@@ -80,13 +85,10 @@ export default function(opt) {
     });
 
     // anything after the / path is a request for a specific client name
-    // This is a backwards compat feature
     app.use(async (ctx, next) => {
         const parts = ctx.request.path.split('/');
 
         // any request with several layers of paths is not allowed
-        // rejects /foo/bar
-        // allow /foo
         if (parts.length !== 2) {
             await next();
             return;
@@ -95,19 +97,17 @@ export default function(opt) {
         const reqId = parts[1];
 
         // limit requested hostnames to 63 characters
-        if (! /^(?:[a-z0-9][a-z0-9\-]{4,63}[a-z0-9]|[a-z0-9]{4,63})$/.test(reqId)) {
+        if (!/^(?:[a-z0-9][a-z0-9\-]{4,63}[a-z0-9]|[a-z0-9]{4,63})$/.test(reqId)) {
             const msg = 'Invalid subdomain. Subdomains must be lowercase and between 4 and 63 alphanumeric characters.';
             ctx.status = 403;
-            ctx.body = {
-                message: msg,
-            };
+            ctx.body = { message: msg };
             return;
         }
 
         debug('making new client with id %s', reqId);
         const info = await manager.newClient(reqId);
 
-        const url = schema + '://' + info.id + '.' + ctx.request.host;
+        const url = `${schema}://${info.id}.${ctx.request.host}`;
         info.url = url;
         ctx.body = info;
         return;
@@ -117,7 +117,7 @@ export default function(opt) {
 
     const appCallback = app.callback();
 
-    server.on('request', (req, res) => {
+    server.on('request', (req: IncomingMessage, res: ServerResponse) => {
         // without a hostname, we won't know who the request is for
         const hostname = req.headers.host;
         if (!hostname) {
@@ -142,7 +142,7 @@ export default function(opt) {
         client.handleRequest(req, res);
     });
 
-    server.on('upgrade', (req, socket, head) => {
+    server.on('upgrade', (req: IncomingMessage, socket: net.Socket, head: Buffer) => {
         const hostname = req.headers.host;
         if (!hostname) {
             socket.destroy();
@@ -165,4 +165,4 @@ export default function(opt) {
     });
 
     return server;
-};
+}
