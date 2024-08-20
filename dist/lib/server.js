@@ -30,6 +30,11 @@ function createServer(opt = {}) {
             mem: process.memoryUsage(),
         };
     });
+    router.get('/api/tunnels', async (ctx) => {
+        ctx.body = {
+            tunnels: manager.getClients(),
+        };
+    });
     router.get('/api/tunnels/:id/status', async (ctx) => {
         const clientId = ctx.params.id;
         const client = manager.getClient(clientId);

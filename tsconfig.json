@@ -6,18 +6,23 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
+    "outDir": "dist",
     "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
       "*": [
         "node_modules/*"
       ]
-    }
+    },
+    "typeRoots": [
+      "./src/types",
+      "./node_modules/@types"
+    ]
   },
   "include": [
     "src/**/*",
-    "bin/**/*"
+    "bin/**/*",
+    "src/types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules"

@@ -17,7 +17,7 @@ export interface NewClientResult {
 // Manage sets of clients
 // A client is a "user session" established to service a remote localtunnel client
 export class ClientManager {
-    private clients: Map<string, Client>;
+    public clients: Map<string, Client>;
     public stats: { tunnels: number };
     private debug: Debugger;
     private opt: ClientManagerOptions;
@@ -63,6 +63,7 @@ export class ClientManager {
 
         client.once('close', () => {
             this.removeClient(id);
+            client.removeAllListeners();
         });
 
         // try/catch used here to remove client id
@@ -86,6 +87,7 @@ export class ClientManager {
         this.debug('removing client: %s', id);
         const client = this.clients.get(id);
         if (!client) {
+            this.debug('Client ID %s not found during removal', id);
             return;
         }
         --this.stats.tunnels;
@@ -99,5 +101,9 @@ export class ClientManager {
 
     getClient(id: string): Client | undefined {
         return this.clients.get(id);
+    }
+
+    getClients(): string[] {
+        return Array.from(this.clients.keys());
     }
 }

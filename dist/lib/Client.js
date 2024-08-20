@@ -17,41 +17,47 @@ class Client extends events_1.default {
     id;
     debug;
     graceTimeout;
+    connTimeout;
     constructor(options) {
         super();
         const agent = (this.agent = options.agent);
         const id = (this.id = options.id);
-        const connTimeout = options.timeout ?? 1000;
+        this.connTimeout = options.timeout ?? 1000;
         this.debug = (0, debug_1.default)(`lt:Client[${this.id}]`);
         // client is given a grace period in which they can connect before they are _removed_
         this.graceTimeout = setTimeout(() => {
             this.close();
-        }, connTimeout).unref();
-        agent.on('online', () => {
-            this.debug('client online %s', id);
-            clearTimeout(this.graceTimeout);
-        });
-        agent.on('offline', () => {
-            this.debug('client offline %s', id);
-            // if there was a previous timeout set, we don't want to double trigger
-            clearTimeout(this.graceTimeout);
-            // client is given a grace period in which they can re-connect before they are _removed_
-            this.graceTimeout = setTimeout(() => {
-                this.close();
-            }, connTimeout).unref();
-        });
-        // TODO: Handle agent error
-        agent.once('error', (err) => {
-            this.close();
-        });
+        }, this.connTimeout).unref();
+        agent.on('online', this.handleOnline.bind(this));
+        agent.on('offline', this.handleOffline.bind(this));
+        agent.once('error', this.handleError.bind(this));
     }
     stats() {
         return this.agent.stats();
     }
     close() {
         clearTimeout(this.graceTimeout);
+        this.agent.off('online', this.handleOnline);
+        this.agent.off('offline', this.handleOffline);
+        this.agent.off('error', this.handleError);
         this.agent.destroy();
         this.emit('close');
+    }
+    handleOnline() {
+        this.debug('client online %s', this.id);
+        clearTimeout(this.graceTimeout);
+    }
+    handleOffline() {
+        this.debug('client offline %s', this.id);
+        clearTimeout(this.graceTimeout);
+        // client is given a grace period in which they can re-connect before they are _removed_
+        this.graceTimeout = setTimeout(() => {
+            this.close();
+        }, this.connTimeout).unref();
+    }
+    handleError(err) {
+        this.debug('agent error: %s', err.message);
+        this.close();
     }
     handleRequest(req, res) {
         this.debug('> %s', req.url);
@@ -71,6 +77,11 @@ class Client extends events_1.default {
         // this can happen when underlying agent produces an error
         clientReq.once('error', (err) => {
             // TODO: Handle request error, maybe respond with a 504 if headers not sent
+            this.debug('Request error: %s', err.message);
+            if (!res.headersSent) {
+                res.writeHead(504, { 'Content-Type': 'text/plain' });
+                res.end('504 Gateway Timeout');
+            }
         });
         // using pump is deliberate - see the pump docs for why
         (0, pump_1.default)(req, clientReq);

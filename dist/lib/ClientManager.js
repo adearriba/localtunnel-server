@@ -48,6 +48,7 @@ class ClientManager {
         this.clients.set(id, client);
         client.once('close', () => {
             this.removeClient(id);
+            client.removeAllListeners();
         });
         // try/catch used here to remove client id
         try {
@@ -69,6 +70,7 @@ class ClientManager {
         this.debug('removing client: %s', id);
         const client = this.clients.get(id);
         if (!client) {
+            this.debug('Client ID %s not found during removal', id);
             return;
         }
         --this.stats.tunnels;
@@ -80,6 +82,9 @@ class ClientManager {
     }
     getClient(id) {
         return this.clients.get(id);
+    }
+    getClients() {
+        return Array.from(this.clients.keys());
     }
 }
 exports.ClientManager = ClientManager;

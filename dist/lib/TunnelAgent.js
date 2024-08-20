@@ -71,7 +71,7 @@ class TunnelAgent extends http_1.Agent {
         this.debug('closed tcp socket');
         // flush any waiting connections
         for (const conn of this.waitingCreateConn) {
-            conn(new Error('closed'), null);
+            conn(new Error('TunnelAgent server closed'), null);
         }
         this.waitingCreateConn = [];
         this.emit('end');
@@ -126,6 +126,7 @@ class TunnelAgent extends http_1.Agent {
     // cb(err, socket)
     createConnection(options, cb) {
         if (this.closed) {
+            this.debug('createConnection called on a closed server');
             cb(new Error('closed'), null);
             return;
         }
@@ -144,6 +145,7 @@ class TunnelAgent extends http_1.Agent {
         cb(null, sock);
     }
     destroy() {
+        this.server.removeAllListeners();
         this.server.close();
         super.destroy();
     }

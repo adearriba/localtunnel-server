@@ -3,6 +3,8 @@
   "name": "localtunnel-server",
   "description": "expose localhost to the world",
   "version": "0.0.8",
+  "main": "dist/server.js",
+  "bin": "dist/server.js",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -32,6 +34,7 @@
     "@types/winston": "2.4.4",
     "mocha": "10.7.0",
     "node-dev": "8.0.0",
+    "nodemon": "3.1.4",
     "supertest": "7.0.0",
     "ts-node": "10.9.2",
     "typescript": "5.5.4",
@@ -40,9 +43,15 @@
   },
   "scripts": {
     "test": "vitest",
-    "start": "./bin/server",
-    "dev": "node-dev src/server -- --port 3000",
-    "start-server": "ts-node -r tsconfig-paths/register src/server --port 1234",
+    "start": "npm run build && ./dist/server.js --port 3000 --secure",
+    "dev": "nodemon --exec ts-node src/server -- --port 3000",
     "build": "tsc"
+  },
+  "pkg": {
+    "scripts": "build/**/*.js",
+    "targets": [
+      "latest-linux-x64"
+    ],
+    "outputPath": "dist"
   }
 }
