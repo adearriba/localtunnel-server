@@ -1,8 +1,8 @@
-import { Agent, ClientRequestArgs } from 'http';
+import { Agent, ClientRequestArgs, Server } from 'http';
 import net, { AddressInfo, Socket } from 'net';
 import Debug from 'debug';
 
-const DEFAULT_MAX_SOCKETS = 10;
+const DEFAULT_MAX_SOCKETS = 20;
 
 interface TunnelAgentOptions {
     clientId?: string;
@@ -42,6 +42,10 @@ export class TunnelAgent extends Agent {
 
         // new tcp server to service requests for this client
         this.server = net.createServer();
+
+        const httpServer = this.server as Server;
+        httpServer.keepAliveTimeout = 5000;  // Set keep-alive timeout to 5 seconds
+        httpServer.headersTimeout = 6000;
 
         this.server.on('close', this._onClose.bind(this));
         this.server.on('connection', this._onConnection.bind(this));
