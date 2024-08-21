@@ -129,6 +129,7 @@ export class TunnelAgent extends Agent {
         socket.once('error', (err) => {
             // we do not log these errors, sessions can drop from clients for many reasons
             // these are not actionable errors for our server
+            this.debug('socket error: %s', err.message);
             socket.destroy();
         });
 
@@ -144,6 +145,12 @@ export class TunnelAgent extends Agent {
         if (fn) {
             this.debug('giving socket to queued conn request');
             setTimeout(() => {
+                this.debug('socket details before assignment:', {
+                    remoteAddress: socket.remoteAddress,
+                    remotePort: socket.remotePort,
+                    localAddress: socket.localAddress,
+                    localPort: socket.localPort,
+                });
                 fn(null, socket);
             }, 0);
             return;
@@ -179,7 +186,14 @@ export class TunnelAgent extends Agent {
             return;
         }
 
-        this.debug('socket given');
+        this.debug('socket assigned to connection request');
+        this.debug('socket details before closure:', {
+            remoteAddress: sock.remoteAddress,
+            remotePort: sock.remotePort,
+            localAddress: sock.localAddress,
+            localPort: sock.localPort,
+        });
+
         cb(null, sock);
     }
 
