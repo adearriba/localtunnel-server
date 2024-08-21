@@ -51,9 +51,9 @@ export class TunnelAgent extends Agent {
         this.server.on('connection', this._onConnection.bind(this));
         this.server.on('error', (err: NodeJS.ErrnoException) => {
             // These errors happen from killed connections, we don't worry about them
-            if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+            /*if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
                 return;
-            }
+            }*/
             this.debug(err);
         });
     }
