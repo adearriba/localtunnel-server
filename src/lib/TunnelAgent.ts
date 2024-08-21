@@ -100,6 +100,8 @@ export class TunnelAgent extends Agent {
 
     // new socket connection from client for tunneling requests to client
     private _onConnection(socket: Socket) {
+        this.debug('new connection attempt: %s:%s', (socket.address() as AddressInfo).address, (socket.address() as AddressInfo).port);
+
         // no more socket connections allowed
         if (this.connectedSockets >= this.maxTcpSockets) {
             this.debug('no more sockets allowed');
@@ -170,8 +172,10 @@ export class TunnelAgent extends Agent {
         // wait until we have one
         if (!sock) {
             this.waitingCreateConn.push(cb);
-            this.debug('waiting connected: %s', this.connectedSockets);
-            this.debug('waiting available: %s', this.availableSockets.length);
+            this.debug('no available sockets, queuing connection request');
+            this.debug('connected: %s', this.connectedSockets);
+            this.debug('current waiting connections: %d', this.waitingCreateConn.length);
+            this.debug('current available sockets: %d', this.availableSockets.length);
             return;
         }
 
@@ -180,6 +184,7 @@ export class TunnelAgent extends Agent {
     }
 
     destroy() {
+        this.debug('destroying TunnelAgent');
         this.server.removeAllListeners();
         this.server.close();
         super.destroy();
