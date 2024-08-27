@@ -7,6 +7,7 @@ import Router from 'koa-router';
 import net from 'net';
 
 import { ClientManager } from './ClientManager';
+import { validateSubdmain } from './Utils';
 
 interface Options {
     domain?: string;
@@ -16,6 +17,7 @@ interface Options {
 }
 
 const debug = Debug('localtunnel:server');
+const API_KEY = process.env.API_KEY ?? '';
 
 export function createServer(opt: Options = {}): http.Server {
     const validHosts = opt.domain ? [opt.domain] : undefined;
@@ -76,6 +78,13 @@ export function createServer(opt: Options = {}): http.Server {
 
         const isNewClientRequest = ctx.query['new'] !== undefined;
         if (isNewClientRequest) {
+            const apiKey = ctx.request.headers['x-api-key'];
+
+            if (!apiKey || apiKey !== API_KEY) {
+                ctx.status = 401;
+                return;
+            }
+
             const reqId = hri.random();
             debug('making new client with id %s', reqId);
             const info = await manager.newClient(reqId);
@@ -102,11 +111,18 @@ export function createServer(opt: Options = {}): http.Server {
 
         const reqId = parts[1];
 
+        const apiKey = ctx.request.headers['x-api-key'];
+
+        if (!apiKey || apiKey !== API_KEY) {
+            ctx.status = 401;
+            return;
+        }
+
         // limit requested hostnames to 63 characters
-        if (!/^(?:[a-z0-9][a-z0-9\-]{4,63}[a-z0-9]|[a-z0-9]{4,63})$/.test(reqId)) {
-            const msg = 'Invalid subdomain. Subdomains must be lowercase and between 4 and 63 alphanumeric characters.';
+        const subdomainValidation = validateSubdmain(reqId);
+        if (!subdomainValidation.success) {
             ctx.status = 403;
-            ctx.body = { message: msg };
+            ctx.body = { message: subdomainValidation.message };
             return;
         }
 
