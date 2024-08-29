@@ -44,9 +44,7 @@ export function createServer(opt: Options = {}): http.Server {
     });
 
     router.get('/api/tunnels', async (ctx) => {
-        ctx.body = {
-            tunnels: manager.getClients(),
-        };
+        ctx.body = manager.getClients();
     });
 
     router.get('/api/tunnels/:id/status', async (ctx) => {

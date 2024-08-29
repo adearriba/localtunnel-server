@@ -103,7 +103,9 @@ export class ClientManager {
         return this.clients.get(id);
     }
 
-    getClients(): string[] {
-        return Array.from(this.clients.keys());
+    getClients() {
+        return Object.entries(this.clients).map(entry => {
+            return (entry[1] as Client).stats();
+        })
     }
 }

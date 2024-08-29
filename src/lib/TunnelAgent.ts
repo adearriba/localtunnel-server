@@ -26,6 +26,7 @@ export class TunnelAgent extends Agent {
     private server: net.Server;
     private started: boolean = false;
     private closed: boolean = false;
+    private clientId?: string;
 
     constructor(options: TunnelAgentOptions = {}) {
         super({
@@ -35,6 +36,7 @@ export class TunnelAgent extends Agent {
             maxFreeSockets: 1,
         });
 
+        this.clientId = options.clientId;
         this.debug = Debug(`lt:TunnelAgent[${options.clientId}]`);
 
         // track maximum allowed sockets
@@ -65,6 +67,14 @@ export class TunnelAgent extends Agent {
     stats() {
         return {
             connectedSockets: this.connectedSockets,
+            waitingCreateConn: this.waitingCreateConn.length,
+            availableSockets: this.availableSockets.map(s => ({
+                readyState: s.readyState,
+                localAddress: s.localAddress,
+                localPort: s.localPort,
+                remoteAddress: s.remoteAddress,
+                remotePort: s.remotePort,
+            })),
         };
     }
 
@@ -90,11 +100,19 @@ export class TunnelAgent extends Agent {
     private _onClose() {
         this.closed = true;
         this.debug('closed tcp socket');
+
+        // flush any active connections
+        for (const socket of this.availableSockets) {
+            socket.destroy({ name: 'AgentClosed', message: `Closing ${this.clientId}` })
+        }
+        this.availableSockets = [];
+
         // flush any waiting connections
         for (const conn of this.waitingCreateConn) {
             conn(new Error('TunnelAgent server closed'), null);
         }
         this.waitingCreateConn = [];
+
         this.emit('end');
     }
 
