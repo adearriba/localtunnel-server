@@ -12,6 +12,10 @@ const debug = Debug('localtunnel');
 
 const argv = optimist
     .usage('Usage: $0 --port [num]')
+    .option('k', {
+        alias: 'api-key',
+        describe: 'Set a default api key to block unauthorized requests',
+    })
     .options('secure', {
         default: false,
         describe: 'use this flag to indicate proxy over https'
@@ -31,6 +35,7 @@ const argv = optimist
         default: 10,
         describe: 'maximum number of tcp sockets each client is allowed to establish at one time (the tunnels)'
     })
+    .string('api-key')
     .argv;
 
 if (argv.help) {
@@ -42,6 +47,7 @@ const server = CreateServer({
     max_tcp_sockets: argv['max-sockets'],
     secure: argv.secure,
     domain: argv.domain,
+    api_key: argv['api-key'],
 });
 
 server.listen(argv.port, argv.address, () => {

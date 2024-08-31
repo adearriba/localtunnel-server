@@ -10,7 +10,7 @@ import ClientManager from './lib/ClientManager';
 
 const debug = Debug('localtunnel:server');
 
-export default function(opt) {
+export default function (opt) {
     opt = opt || {};
 
     const validHosts = (opt.domain) ? [opt.domain] : undefined;
@@ -128,6 +128,13 @@ export default function(opt) {
 
         const clientId = GetClientIdFromHostname(hostname);
         if (!clientId) {
+            const api_key = req.headers['api-key'];
+            if (api_key !== opt.api_key) {
+                res.statusCode = 401;
+                res.end('Unauthorized');
+                return;
+            }
+
             appCallback(req, res);
             return;
         }
