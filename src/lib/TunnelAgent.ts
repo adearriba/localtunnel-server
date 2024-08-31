@@ -137,6 +137,9 @@ export class TunnelAgent extends Agent {
             }
 
             this.debug('connected sockets: %s', this.connectedSockets);
+            this.debug('current waiting connections: %d', this.waitingCreateConn.length);
+            this.debug('current available sockets: %d', this.availableSockets.length);
+
             if (this.connectedSockets <= 0) {
                 this.debug('all sockets disconnected');
                 this.emit('offline');
@@ -163,12 +166,6 @@ export class TunnelAgent extends Agent {
         if (fn) {
             this.debug('giving socket to queued conn request');
             setTimeout(() => {
-                this.debug('socket details before assignment:', {
-                    remoteAddress: socket.remoteAddress,
-                    remotePort: socket.remotePort,
-                    localAddress: socket.localAddress,
-                    localPort: socket.localPort,
-                });
                 fn(null, socket);
             }, 0);
             return;
@@ -205,13 +202,6 @@ export class TunnelAgent extends Agent {
         }
 
         this.debug('socket assigned to connection request');
-        this.debug('socket details before closure:', {
-            remoteAddress: sock.remoteAddress,
-            remotePort: sock.remotePort,
-            localAddress: sock.localAddress,
-            localPort: sock.localPort,
-        });
-
         cb(null, sock);
     }
 

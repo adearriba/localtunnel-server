@@ -35,7 +35,7 @@ const argv = optimist
         describe: 'Specify the base domain name. This is optional if hosting localtunnel from a regular example.com domain. This is required if hosting a localtunnel server from a subdomain (i.e. lt.example.dom where clients will be client-app.lt.example.come)',
     })
     .options('max-sockets', {
-        default: 10,
+        default: 50,
         describe: 'maximum number of tcp sockets each client is allowed to establish at one time (the tunnels)',
     }).argv;
 

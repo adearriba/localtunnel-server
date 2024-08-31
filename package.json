@@ -44,7 +44,7 @@
   "scripts": {
     "test": "vitest",
     "start": "npm run build && node ./dist/server.js --port 3000 --secure",
-    "dev": "nodemon --exec ts-node src/server -- --port 3000",
+    "dev": "nodemon --exec ts-node src/server -- --port 3000 --domain localhost:3000 --max-sockets 50",
     "build": "tsc"
   },
   "pkg": {
