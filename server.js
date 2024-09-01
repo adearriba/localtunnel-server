@@ -1,4 +1,3 @@
-import log from 'book';
 import Koa from 'koa';
 import tldjs from 'tldjs';
 import Debug from 'debug';
@@ -7,6 +6,7 @@ import { hri } from 'human-readable-ids';
 import Router from 'koa-router';
 
 import ClientManager from './lib/ClientManager';
+import { IAuthValidator, UnrestrictedAuthValidator } from './lib/AuthValidator';
 
 const debug = Debug('localtunnel:server');
 
@@ -16,6 +16,13 @@ export default function (opt) {
     const validHosts = (opt.domain) ? [opt.domain] : undefined;
     const myTldjs = tldjs.fromUserSettings({ validHosts });
     const landingPage = opt.landing || 'https://localtunnel.github.io/www/';
+
+    /** @type { IAuthValidator } */
+    const apiAccessAuthValidator = opt.api_auth_strategy || new UnrestrictedAuthValidator();
+    /** @type { IAuthValidator } */
+    const clientCreationAuthValidator = opt.tunnel_auth_strategy || new UnrestrictedAuthValidator();
+    /** @type { IAuthValidator } */
+    const subdomainAuthValidator = opt.subdomain_auth_strategy || new UnrestrictedAuthValidator();
 
     function GetClientIdFromHostname(hostname) {
         return myTldjs.getSubdomain(hostname);
@@ -27,6 +34,16 @@ export default function (opt) {
 
     const app = new Koa();
     const router = new Router();
+
+    router.use('/api', async (ctx, next) => {
+        if (!await apiAccessAuthValidator.validateAccess(ctx.req)) {
+            ctx.res.statusCode = 401;
+            ctx.res.end('Unauthorized');
+            return;
+        }
+
+        await next();
+    });
 
     router.get('/api/status', async (ctx, next) => {
         const stats = manager.stats;
@@ -65,6 +82,12 @@ export default function (opt) {
 
         const isNewClientRequest = ctx.query['new'] !== undefined;
         if (isNewClientRequest) {
+            if (!await clientCreationAuthValidator.validateAccess(ctx.req)) {
+                ctx.res.statusCode = 401;
+                ctx.res.end('Unauthorized');
+                return;
+            }
+
             const reqId = hri.random();
             debug('making new client with id %s', reqId);
             const info = await manager.newClient(reqId);
@@ -89,6 +112,12 @@ export default function (opt) {
         // allow /foo
         if (parts.length !== 2) {
             await next();
+            return;
+        }
+
+        if (!await clientCreationAuthValidator.validateAccess(ctx.req)) {
+            ctx.res.statusCode = 401;
+            ctx.res.end('Unauthorized');
             return;
         }
 
@@ -117,7 +146,7 @@ export default function (opt) {
 
     const appCallback = app.callback();
 
-    server.on('request', (req, res) => {
+    server.on('request', async (req, res) => {
         // without a hostname, we won't know who the request is for
         const hostname = req.headers.host;
         if (!hostname) {
@@ -128,13 +157,6 @@ export default function (opt) {
 
         const clientId = GetClientIdFromHostname(hostname);
         if (!clientId) {
-            const api_key = req.headers['api-key'];
-            if (api_key !== opt.api_key) {
-                res.statusCode = 401;
-                res.end('Unauthorized');
-                return;
-            }
-
             appCallback(req, res);
             return;
         }
@@ -143,6 +165,12 @@ export default function (opt) {
         if (!client) {
             res.statusCode = 404;
             res.end('404');
+            return;
+        }
+
+        if (await subdomainAuthValidator.validateAccess(ctx.req)) {
+            res.statusCode = 401;
+            res.end('Unauthorized');
             return;
         }
 

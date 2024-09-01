@@ -7,6 +7,7 @@ import log from 'book';
 import Debug from 'debug';
 
 import CreateServer from '../server';
+import { SimpleAPIKeyAuthValidator, UnrestrictedAuthValidator } from '../lib/AuthValidator';
 
 const debug = Debug('localtunnel');
 
@@ -35,6 +36,22 @@ const argv = optimist
         default: 10,
         describe: 'maximum number of tcp sockets each client is allowed to establish at one time (the tunnels)'
     })
+    .option('all-auth', {
+        describe: 'Authentication strategy for any endpoint or subdomain',
+        type: 'string',
+    })
+    .option('tunnel-auth', {
+        describe: 'Authentication strategy for tunnel',
+        type: 'string',
+    })
+    .option('api-auth', {
+        describe: 'Authentication strategy for API access',
+        type: 'string',
+    })
+    .option('subdomain-auth', {
+        describe: 'Authentication strategy for subdomain access',
+        type: 'string',
+    })
     .string('api-key')
     .argv;
 
@@ -43,11 +60,23 @@ if (argv.help) {
     process.exit();
 }
 
+function createAuthStrategy(strategy) {
+    if (strategy === 'simple-auth-key') {
+        if (!argv['api-key']) throw 'Missing api-key value';
+
+        return new SimpleAPIKeyAuthValidator(argv['api-key']);
+    } else {
+        return new UnrestrictedAuthValidator();
+    }
+}
+
 const server = CreateServer({
     max_tcp_sockets: argv['max-sockets'],
     secure: argv.secure,
     domain: argv.domain,
-    api_key: argv['api-key'],
+    api_auth_strategy: createAuthStrategy(argv['api-auth'] || argv['all-auth']),
+    tunnel_auth_strategy: createAuthStrategy(argv['tunnel-auth'] || argv['all-auth']),
+    subdomain_auth_strategy: createAuthStrategy(argv['subdomain-auth'] || argv['all-auth']),
 });
 
 server.listen(argv.port, argv.address, () => {
