@@ -168,7 +168,7 @@ export default function (opt) {
             return;
         }
 
-        if (await subdomainAuthValidator.validateAccess(ctx.req)) {
+        if (!await subdomainAuthValidator.validateAccess(req)) {
             res.statusCode = 401;
             res.end('Unauthorized');
             return;
