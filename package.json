@@ -13,8 +13,8 @@
     "debug": "3.1.0",
     "esm": "3.0.34",
     "human-readable-ids": "1.0.3",
-    "koa": "2.5.1",
-    "koa-router": "7.4.0",
+    "koa": "2.15.3",
+    "koa-router": "12.0.1",
     "localenv": "0.2.2",
     "optimist": "0.6.1",
     "pump": "3.0.0",
@@ -29,6 +29,6 @@
   "scripts": {
     "test": "mocha --check-leaks --require esm './**/*.test.js'",
     "start": "./bin/server",
-    "dev": "node-dev --inspect-brk -r esm bin/server --port 3000 --domain localhost"
+    "dev": "node-dev --inspect -r esm bin/server --port 3000 --domain localhost"
   }
 }
